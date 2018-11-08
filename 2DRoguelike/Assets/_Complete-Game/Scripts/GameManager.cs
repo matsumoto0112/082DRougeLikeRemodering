@@ -26,7 +26,7 @@ namespace Completed
         private bool doingSetup = true;                         //Boolean to check if we're setting up board, prevent Player from moving during setup.
         [SerializeField]
         private Text turnText;
-
+        public Text TurnText { get { return turnText; } }
 
         //Awake is always called before any Start functions
         void Awake()

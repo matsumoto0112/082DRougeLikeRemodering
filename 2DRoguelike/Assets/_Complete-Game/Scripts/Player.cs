@@ -24,8 +24,6 @@ namespace Completed
         private Animator animator;                  //Used to store a reference to the Player's animator component.
         private int food;                           //Used to store player food points total during level.
         private int currentTurnNum;
-        [SerializeField]
-        private Text turnText;
 #if UNITY_IOS || UNITY_ANDROID || UNITY_WP8 || UNITY_IPHONE
         private Vector2 touchOrigin = -Vector2.one;	//Used to store location of screen touch origin for mobile controls.
 #endif
@@ -41,9 +39,9 @@ namespace Completed
             food = GameManager.instance.playerFoodPoints;
 
             //Set the foodText to reflect the current player food total.
-            foodText.text = "Food: " + food;            
+            foodText.text = "Food: " + food;
             currentTurnNum = 1;
-            turnText.text = "Turn:" + (currentTurnNum);
+            GameManager.instance.TurnText.text = "Turn:" + (currentTurnNum);
             //Call the Start function of the MovingObject base class.
             base.Start();
         }
@@ -159,7 +157,7 @@ namespace Completed
             //Set the playersTurn boolean of GameManager to false now that players turn is over.
             GameManager.instance.playersTurn = false;
             currentTurnNum++;
-            turnText.text = "Turn:" + (currentTurnNum);
+            GameManager.instance.TurnText.text = "Turn:" + (currentTurnNum);
         }
 
 
