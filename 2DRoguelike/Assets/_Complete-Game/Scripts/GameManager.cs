@@ -47,7 +47,6 @@ namespace Completed
 
             //Sets this to not be destroyed when reloading scene
             DontDestroyOnLoad(gameObject);
-
             //Assign enemies to a new List of Enemy objects.
             enemies = new List<Enemy>();
 
@@ -142,7 +141,7 @@ namespace Completed
         public void GameOver()
         {
             //Set levelText to display number of levels passed and game over message
-            levelText.text = "After " + level + " days, you starved.";
+            levelText.text = "After " + level + " days,\n you starved.";
 
             //Enable black background image gameObject.
             levelImage.SetActive(true);
@@ -186,6 +185,11 @@ namespace Completed
         public void RemoveEnemy(Enemy removeItem)
         {
             enemies.Remove(removeItem);
+        }
+
+        public void AllInit()
+        {
+            level = 0;
         }
     }
 }

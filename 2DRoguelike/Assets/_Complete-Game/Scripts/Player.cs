@@ -34,6 +34,9 @@ namespace Completed
         [SerializeField, Header("攻撃判定用オブジェクト")]
         private GameObject attackObject;
         private Direction direction; //攻撃方向
+        private float timer;
+        [SerializeField]
+        private InfoText infoText;
 #if UNITY_IOS || UNITY_ANDROID || UNITY_WP8 || UNITY_IPHONE
         private Vector2 touchOrigin = -Vector2.one;	//Used to store location of screen touch origin for mobile controls.
 #endif
@@ -69,7 +72,11 @@ namespace Completed
         {
             //プレイヤーのターンでない場合は、その機能を終了します。
             if (!GameManager.instance.playersTurn) return;
-
+            timer += Time.deltaTime;
+            if (timer >= 3.0f && !infoText.isAppear)
+            {
+                infoText.Appear();
+            }
             int horizontal = 0;     //水平移動方向を格納するために使用します。
             int vertical = 0;       //垂直移動方向を格納するために使用します。
 
@@ -79,6 +86,8 @@ namespace Completed
             //攻撃処理
             if (Input.GetButtonDown("Fire1"))
             {
+                timer = 0.0f;
+                infoText.Disapper();
                 Attack(direction);
             }
             else
@@ -99,6 +108,8 @@ namespace Completed
                 {
                     if (horizontal != 0 || vertical != 0)
                     {
+                        timer = 0.0f;
+                        infoText.Disapper();
                         RotatePlayer(horizontal, vertical);
                         horizontal = vertical = 0;
                     }
@@ -149,6 +160,8 @@ namespace Completed
             //水平または垂直に0以外の値があるかどうかを確認する
             if (horizontal != 0 || vertical != 0)
             {
+                timer = 0.0f;
+                infoText.Disapper();
                 //AttemptMoveがジェネリックパラメータWallを渡すのは、プレイヤーが攻撃に遭遇した場合（攻撃した場合）
                 //パラメータとして水平と垂直を渡して、Playerを移動する方向を指定します。
                 AttemptMove<Wall>(horizontal, vertical);
