@@ -8,6 +8,10 @@ namespace Completed
     //Playerは移動できるオブジェクトの基本クラスであるMovingObjectから継承し、Enemyはこれを継承します。
     public class Player : MovingObject
     {
+        enum Direction
+        {
+            Left, Right, Up, Down,
+        }
         public float restartLevelDelay = 1f;        //レベルを再開するまでの遅延時間（秒単位）。
         public int pointsPerFood = 10;              //食べ物を拾うときにプレイヤーの食べ物ポイントに追加するポイントの数。
         public int pointsPerSoda = 20;              //ソーダオブジェクトをピックアップするときにプレイヤーの食べ物ポイントに追加するポイントの数。
@@ -26,6 +30,10 @@ namespace Completed
         private Animator animator;                  //Playerのアニメータコンポーネントへの参照を格納するために使用します。
         private int food;                           //レベル中にプレイヤーの食べ物ポイント合計を格納するために使用されます。
         private int currentTurnNum;
+        private SpriteRenderer spriteRenderer;
+        [SerializeField, Header("攻撃判定用オブジェクト")]
+        private GameObject attackObject;
+        private Direction direction; //攻撃方向
 #if UNITY_IOS || UNITY_ANDROID || UNITY_WP8 || UNITY_IPHONE
         private Vector2 touchOrigin = -Vector2.one;	//Used to store location of screen touch origin for mobile controls.
 #endif
@@ -38,12 +46,12 @@ namespace Completed
 
             //レベル間でGameManager.instanceに保存されている現在の食品ポイント合計を取得します。
             food = GameManager.instance.playerFoodPoints;
-
             //現在のプレイヤーの食べ物の合計を反映するようにfoodTextを設定します。
             foodText.text = "Food: " + food;
             currentTurnNum = 1;
             GameManager.instance.TurnText.text = "Turn:" + (currentTurnNum);
-
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            direction = Direction.Right;
             //MovingObject基本クラスのStart関数を呼び出します。
             base.Start();
         }
@@ -66,18 +74,35 @@ namespace Completed
             int vertical = 0;       //垂直移動方向を格納するために使用します。
 
             //Unityエディタまたはスタンドアロンビルドで実行しているかどうかを確認します。
-#if UNITY_STANDALONE || UNITY_WEBPLAYER
+#if UNITY_STANDALONE || UNITY_WEBPLAYER || UNITY_WEBGL
 
-            //入力マネージャから入力を取得し、整数に丸め、水平軸に格納してx軸の移動方向を設定します
-            horizontal = (int)(Input.GetAxisRaw("Horizontal"));
-
-            //入力マネージャから入力を取得し、整数に丸め、y軸の移動方向を設定するために垂直に格納する
-            vertical = (int)(Input.GetAxisRaw("Vertical"));
-
-            //水平方向に移動するかどうかを確認し、垂直方向にゼロに設定する。
-            if (horizontal != 0)
+            //攻撃処理
+            if (Input.GetButtonDown("Fire1"))
             {
-                vertical = 0;
+                Attack(direction);
+            }
+            else
+            {
+                //入力マネージャから入力を取得し、整数に丸め、水平軸に格納してx軸の移動方向を設定します
+                horizontal = (int)(Input.GetAxisRaw("Horizontal"));
+
+                //入力マネージャから入力を取得し、整数に丸め、y軸の移動方向を設定するために垂直に格納する
+                vertical = (int)(Input.GetAxisRaw("Vertical"));
+
+                //水平方向に移動するかどうかを確認し、垂直方向にゼロに設定する。
+                if (horizontal != 0)
+                {
+                    vertical = 0;
+                }
+                //RotatePlayerボタンを押している間は移動せず、回転だけする
+                if (Input.GetButton("RotatePlayer"))
+                {
+                    if (horizontal != 0 || vertical != 0)
+                    {
+                        RotatePlayer(horizontal, vertical);
+                        horizontal = vertical = 0;
+                    }
+                }
             }
             //私たちがiOS、Android、Windows Phone 8、またはUnity iPhoneで動作しているか確認してください
 #elif UNITY_IOS || UNITY_ANDROID || UNITY_WP8 || UNITY_IPHONE
@@ -130,6 +155,40 @@ namespace Completed
             }
         }
 
+        /// <summary>
+        /// 攻撃
+        /// </summary>
+        /// <param name="direction">現在の方向</param>
+        private void Attack(Direction direction)
+        {
+            animator.SetTrigger("playerChop");
+            Vector3 offset = Vector3.zero;
+            switch (direction)
+            {
+                case Direction.Left:
+                    offset.x = -1;
+                    break;
+                case Direction.Right:
+                    offset.x = 1;
+                    break;
+                case Direction.Up:
+                    offset.y = 1;
+                    break;
+                case Direction.Down:
+                    offset.y = -1;
+                    break;
+                default:
+                    break;
+            }
+            //攻撃判定用オブジェクト生成
+            Instantiate(attackObject, transform.position + offset, Quaternion.identity);
+            GameManager.instance.playersTurn = false;
+            currentTurnNum++;
+            GameManager.instance.TurnText.text = "Turn:" + (currentTurnNum);
+            LoseFood(1);
+            GameManager.instance.playerFoodPoints = food;
+        }
+
         //AttemptMoveは、基本クラスMovingObjectのAttemptMove関数をオーバーライドします。
         //AttemptMoveはジェネリックパラメータTを取ります。これは、PlayerがWall型で、x方向とy方向が移動するための整数も取ります。
         protected override void AttemptMove<T>(int xDir, int yDir)
@@ -139,6 +198,7 @@ namespace Completed
 
             //現在のスコアを反映するように食べ物のテキスト表示を更新します。
             foodText.text = "Food: " + food;
+            GameManager.instance.playerFoodPoints = food;
 
             //基本クラスのAttemptMoveメソッドを呼び出し、コンポーネントT（この場合はWall）とx方向とy方向を移動して渡します。
             base.AttemptMove<T>(xDir, yDir);
@@ -152,6 +212,7 @@ namespace Completed
                 //SoundManagerのRandomizeSfxを呼び出して、2つのオーディオクリップを渡して移動音を再生します。
                 SoundManager.instance.RandomizeSfx(moveSound1, moveSound2);
             }
+            RotatePlayer(xDir, yDir);
 
             //プレイヤーは移動して食糧を失ったため、ゲームが終了したかどうかを確認します。
             CheckIfGameOver();
@@ -234,6 +295,7 @@ namespace Completed
         //再起動すると、呼び出されるとシーンがリロードされます。
         private void Restart()
         {
+            this.gameObject.SetActive(false);
             //ロードされた最後のシーン、この場合Mainをゲームの唯一のシーンにロードします。 そして、それを "シングル"モードでロードして、既存のものを置き換えます
             //現在のシーン内のすべてのシーンオブジェクトをロードしません。
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex, LoadSceneMode.Single);
@@ -252,6 +314,7 @@ namespace Completed
 
             //フードディスプレイを新しい合計で更新します。
             foodText.text = "-" + loss + " Food: " + food;
+            GameManager.instance.playerFoodPoints = food;
 
             //ゲームが終了したかどうかを確認してください。
             CheckIfGameOver();
@@ -272,6 +335,45 @@ namespace Completed
 
                 //GameManagerのGameOver関数を呼び出します。
                 GameManager.instance.GameOver();
+            }
+        }
+
+        /// <summary>
+        /// プレイヤーの向きを変える
+        /// </summary>
+        /// <param name="xDir">x軸方向の入力値</param>
+        /// <param name="yDir">y軸方向の入力値</param>
+        private void RotatePlayer(int xDir, int yDir)
+        {
+            if (xDir == 0)
+            {
+                if (yDir == 1)
+                {
+                    direction = Direction.Up;
+                    transform.rotation = Quaternion.Euler(new Vector3(0, 0, 90));
+                    spriteRenderer.flipX = false;
+                }
+                else
+                {
+                    direction = Direction.Down;
+                    transform.rotation = Quaternion.Euler(new Vector3(0, 0, 90));
+                    spriteRenderer.flipX = true;
+                }
+            }
+            else
+            {
+                if (xDir == 1)
+                {
+                    direction = Direction.Right;
+                    transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
+                    spriteRenderer.flipX = false;
+                }
+                else
+                {
+                    direction = Direction.Left;
+                    transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
+                    spriteRenderer.flipX = true;
+                }
             }
         }
     }

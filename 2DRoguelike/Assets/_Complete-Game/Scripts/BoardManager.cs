@@ -39,8 +39,6 @@ namespace Completed
 
         private Transform boardHolder;                                  //A variable to store a reference to the transform of our Board object.
         private List<Vector3> gridPositions = new List<Vector3>();  //A list of possible locations to place tiles.
-
-
         //Clears our list gridPositions and prepares it to generate a new board.
         void InitialiseList()
         {
@@ -123,14 +121,14 @@ namespace Completed
                 GameObject tileChoice = tileArray[Random.Range(0, tileArray.Length)];
 
                 //Instantiate tileChoice at the position returned by RandomPosition with no change in rotation
-                Instantiate(tileChoice, randomPosition, Quaternion.identity);
+                GameObject obj = Instantiate(tileChoice, randomPosition, Quaternion.identity);
             }
         }
 
 
         //SetupScene initializes our level and calls the previous functions to lay out the game board
         public void SetupScene(int level)
-        {
+        {      
             //Creates the outer walls and floor.
             BoardSetup();
 
@@ -150,7 +148,7 @@ namespace Completed
             LayoutObjectAtRandom(enemyTiles, enemyCount, enemyCount);
 
             //Instantiate the exit tile in the upper right hand corner of our game board
-            Instantiate(exit, new Vector3(columns - 1, rows - 1, 0f), Quaternion.identity);
+            GameObject exitObject = Instantiate(exit, new Vector3(columns - 1, rows - 1, 0f), Quaternion.identity);
         }
     }
 }
